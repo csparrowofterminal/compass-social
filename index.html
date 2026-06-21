@@ -1009,6 +1009,8 @@ window.pageHistory = window.pageHistory || [];
             font-size: 0.85rem;
             transition: all 0.3s ease;
             text-transform: uppercase;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         
         .follow-btn:hover {
@@ -1032,6 +1034,7 @@ window.pageHistory = window.pageHistory || [];
             display: flex;
             align-items: center;
             justify-content: space-between;
+            gap: 10px;
             padding: 12px;
             transition: all 0.3s ease;
             border-radius: 8px;
@@ -1043,6 +1046,8 @@ window.pageHistory = window.pageHistory || [];
         
         .user-suggest-info {
             flex: 1;
+            min-width: 0;
+            overflow: hidden;
         }
         
         .user-suggest-name {
@@ -1050,12 +1055,18 @@ window.pageHistory = window.pageHistory || [];
             font-weight: 700;
             margin-bottom: 3px;
             font-size: 0.95rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .user-suggest-bio {
             color: var(--text-white);
             opacity: 0.7;
             font-size: 0.75rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         /* Followers/Following Modal */
@@ -2400,17 +2411,7 @@ body.modal-open{ overflow:hidden; }
                         </svg>
                     </div>
                     
-                    <!-- Search Tabs --
-            </div>
-
-                <div id="notificationsList">
-                    <div style="text-align: center; color: var(--text-white); opacity: 0.5; padding: 40px;">
-                        No notifications yet.
-                    </div>
-                </div>
-            </div>
-
->
+                    <!-- Search Tabs -->
                     <div style="display: flex; gap: 20px; margin-top: 20px; border-bottom: 1px solid var(--border-color);">
                         <button 
                             class="search-tab active" 
@@ -4016,6 +4017,10 @@ async function loadFeed() {
             const div = document.createElement('div');
             div.className = 'post';
             div.dataset.postId = post.id;
+
+            if (!post.userId) {
+                console.warn('⚠️ Post is missing userId field:', post.id, post);
+            }
             
             // Increment view when post is created (displayed)
             incrementPostView(post.id);
@@ -5615,7 +5620,7 @@ async function loadFeed() {
                     userDiv.innerHTML = `
                         <div class="user-suggest-info" style="cursor: pointer;" onclick="viewUserProfile('${user.userId}')">
                             <div class="user-suggest-name">${user.pirateName || user.username}</div>
-                            <div class="user-suggest-bio">${user.bio ? (user.bio.length > 40 ? user.bio.substring(0, 40) + '...' : user.bio) : '@' + user.username}</div>
+                            <div class="user-suggest-bio">@${user.username}</div>
                         </div>
                         <button class="follow-btn ${following ? 'following' : ''}" onclick="toggleFollow('${user.userId}', '${user.username}')">
                             ${following ? 'Following' : 'Follow'}
@@ -5804,50 +5809,69 @@ async function loadFeed() {
         let viewedUser = null;
         
         async function viewUserProfile(userId) {
-            if (!userId || userId === currentUser.userId) {
-                // If clicking own profile, just go to profile page
+            if (!userId) {
+                console.warn('⚠️ viewUserProfile called with empty/missing userId. This post is missing its userId field in the database.');
+                try { if (typeof showToast === 'function') showToast('This profile is unavailable (missing user data).'); } catch(e) {}
+                return;
+            }
+
+            // If clicking own profile, just go to profile page
+            if (currentUser && userId === currentUser.userId) {
                 switchPage('profile');
                 closeFollowersModal();
                 return;
             }
-            
+
             try {
                 // Load user data
                 const userRef = window.firebaseRef(window.firebaseDB, 'users/' + userId);
                 const userSnap = await window.firebaseGet(userRef);
-                
+
                 if (!userSnap.exists()) {
                     alert('User not found');
                     return;
                 }
-                
+
                 viewedUser = { userId, ...userSnap.val() };
-                
-                // Hide all pages
-                document.getElementById('homePage').style.display = 'none';
-                document.getElementById('profilePage').style.display = 'none';
-                document.getElementById('trendingPage').style.display = 'none';
-                document.getElementById('settingsPage').style.display = 'none';
-                
+
+                // Fallbacks in case some accounts are missing fields
+                const displayName = viewedUser.pirateName || viewedUser.username || 'Pirate';
+                const handle = viewedUser.username || 'unknown';
+
+                // Hide all other pages (keep this in sync with switchPage)
+                ['homePage','profilePage','trendingPage','radarPage','searchPage','notificationsPage','settingsPage']
+                    .forEach(id => safeSetDisplay(id, 'none'));
+
                 // Show user profile page
-                document.getElementById('userProfilePage').style.display = 'block';
-                
+                safeSetDisplay('userProfilePage', 'block');
+
+                // Track navigation state so Back button / page tracking stays correct
+                try {
+                    if (window.currentPage && window.currentPage !== 'userProfile') {
+                        window.pageHistory = window.pageHistory || [];
+                        window.pageHistory.push(window.currentPage);
+                    }
+                    window.currentPage = 'userProfile';
+                    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                    updateBackButtons();
+                } catch (e) {}
+
                 // Close followers modal if open
                 closeFollowersModal();
-                
+
                 // Set profile info
-                document.getElementById('userProfileTitle').textContent = viewedUser.pirateName;
-                document.getElementById('userProfilePirateName').textContent = viewedUser.pirateName;
-                document.getElementById('userProfileUsername').textContent = '@' + viewedUser.username;
-                
+                document.getElementById('userProfileTitle').textContent = displayName;
+                document.getElementById('userProfilePirateName').textContent = displayName;
+                document.getElementById('userProfileUsername').textContent = '@' + handle;
+
                 // Set profile photo
                 const userProfileAvatar = document.getElementById('userProfileAvatar');
                 if (viewedUser.profilePhoto) {
                     userProfileAvatar.innerHTML = `<img src="${viewedUser.profilePhoto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                 } else {
-                    userProfileAvatar.textContent = viewedUser.pirateName.charAt(0).toUpperCase();
+                    userProfileAvatar.textContent = displayName.charAt(0).toUpperCase();
                 }
-                
+
                 // Set banner
                 const userProfileBanner = document.getElementById('userProfileBanner');
                 if (viewedUser.banner) {
@@ -5859,7 +5883,7 @@ async function loadFeed() {
                     userProfileBanner.style.background = 'linear-gradient(135deg, var(--terminal-green), var(--primary-gold))';
                     userProfileBanner.style.backgroundImage = 'none';
                 }
-                
+
                 // Set bio
                 const userProfileBio = document.getElementById('userProfileBio');
                 if (viewedUser.bio) {
@@ -5869,19 +5893,21 @@ async function loadFeed() {
                     userProfileBio.textContent = 'No bio yet 🏴‍☠️';
                     userProfileBio.style.opacity = '0.5';
                 }
-                
-                // Update follow button
-                const isFollowingUser = await isFollowing(userId);
-                const followBtn = document.getElementById('userProfileFollowBtn');
-                followBtn.textContent = isFollowingUser ? 'Following' : 'Follow';
-                followBtn.className = isFollowingUser ? 'follow-btn following' : 'follow-btn';
-                
-                // Load stats
-                await loadUserProfileStats(userId);
-                
-                // Load user's posts
-                await loadUserProfilePosts(userId);
-                
+
+                // Update follow button (don't let this block the rest of the page)
+                try {
+                    const isFollowingUser = await isFollowing(userId);
+                    const followBtn = document.getElementById('userProfileFollowBtn');
+                    followBtn.textContent = isFollowingUser ? 'Following' : 'Follow';
+                    followBtn.className = isFollowingUser ? 'follow-btn following' : 'follow-btn';
+                } catch (e) {
+                    console.error('Follow status error:', e);
+                }
+
+                // Load stats and posts independently so one failing doesn't blank the other
+                loadUserProfileStats(userId);
+                loadUserProfilePosts(userId);
+
             } catch (e) {
                 console.error('View user profile error:', e);
                 alert('Error loading profile');
