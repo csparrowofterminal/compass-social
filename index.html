@@ -2020,6 +2020,117 @@ body.modal-open{ overflow:hidden; }
 }
 /* ===== End SOL TIP BUTTON v3 ===== */
 
+
+
+/* ===== Theme Toggle: Dark / Gold (v1) ===== */
+body[data-theme="dark"]{
+    --primary-gold: #d4af37;
+    --terminal-green: #dc143c;
+    --dark-blue: #0a0e27;
+    --darker-blue: #050811;
+    --accent-red: #ff3366;
+    --text-white: #e0e0e0;
+    --border-color: rgba(220, 20, 60, 0.3);
+}
+
+body[data-theme="gold"]{
+    --primary-gold: #ffd76a;
+    --terminal-green: #f5b700;
+    --dark-blue: #171007;
+    --darker-blue: #080501;
+    --accent-red: #ff8c2a;
+    --text-white: #fff4d6;
+    --border-color: rgba(255, 215, 106, 0.32);
+    background: radial-gradient(circle at top, rgba(255, 215, 106, 0.13), transparent 34%), linear-gradient(135deg, #080501 0%, #171007 100%);
+}
+
+.theme-settings-card{
+    margin: 22px;
+    padding: 22px;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    background: rgba(255,255,255,0.035);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.22);
+    text-align: left;
+}
+.theme-settings-title{
+    color: var(--primary-gold);
+    font-weight: 900;
+    margin-bottom: 8px;
+    font-size: 1.1rem;
+}
+.theme-settings-subtitle{
+    color: var(--text-white);
+    opacity: .68;
+    font-size: .88rem;
+    margin-bottom: 18px;
+    line-height: 1.45;
+}
+.theme-options{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+.theme-option{
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 16px;
+    cursor: pointer;
+    background: rgba(0,0,0,0.20);
+    color: var(--text-white);
+    font-family: 'Orbitron', sans-serif;
+    text-align: left;
+    transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+.theme-option:hover{
+    transform: translateY(-2px);
+    border-color: var(--primary-gold);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.22);
+}
+.theme-option.active{
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.16), 0 8px 24px rgba(0,0,0,0.28);
+}
+.theme-preview{
+    height: 66px;
+    border-radius: 13px;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255,255,255,0.12);
+    position: relative;
+    overflow: hidden;
+}
+.theme-preview::after{
+    content:'';
+    position:absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+}
+.theme-preview.dark-preview{
+    background: linear-gradient(135deg, #050811, #0a0e27 60%, #dc143c);
+}
+.theme-preview.gold-preview{
+    background: radial-gradient(circle at top right, #ffd76a, transparent 32%), linear-gradient(135deg, #080501, #171007 62%, #f5b700);
+}
+.theme-option-name{
+    font-weight: 900;
+    color: var(--primary-gold);
+    margin-bottom: 4px;
+}
+.theme-option-desc{
+    font-size: .78rem;
+    opacity: .68;
+    line-height: 1.35;
+}
+@media (max-width: 520px){
+    .theme-options{ grid-template-columns: 1fr; }
+    .theme-settings-card{ margin: 12px; padding: 16px; }
+}
+/* ===== End Theme Toggle ===== */
+
 </style>
 </head>
 <body>
@@ -2526,8 +2637,21 @@ body.modal-open{ overflow:hidden; }
                         <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Menu">☰</button>
                     </div>
                 </div>
-                <div style="padding: 40px; text-align: center; color: var(--text-white); opacity: 0.5;">
-                    Coming soon! 🏴‍☠️
+                <div class="theme-settings-card">
+                    <div class="theme-settings-title">🎨 Theme</div>
+                    <div class="theme-settings-subtitle">Choose how COMPASS looks on this device.</div>
+                    <div class="theme-options">
+                        <button type="button" class="theme-option" id="themeDarkOption" onclick="setCompassTheme('dark')">
+                            <div class="theme-preview dark-preview"></div>
+                            <div class="theme-option-name">Dark</div>
+                            <div class="theme-option-desc">Classic pirate-tech dark mode.</div>
+                        </button>
+                        <button type="button" class="theme-option" id="themeGoldOption" onclick="setCompassTheme('gold')">
+                            <div class="theme-preview gold-preview"></div>
+                            <div class="theme-option-name">Gold</div>
+                            <div class="theme-option-desc">Warmer treasure-gold mode.</div>
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -7886,7 +8010,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 <script>
-/* ===== SOL TIP FUNCTION v3 ===== */
+/* ===== SOL TIP FUNCTION v5: Phantom connect + auto-save wallet ===== */
 (function(){
     const SOLANA_WEB3_URL = 'https://unpkg.com/@solana/web3.js@latest/lib/index.iife.min.js';
     const RPC_URL = 'https://api.mainnet-beta.solana.com';
@@ -7928,29 +8052,87 @@ document.addEventListener('DOMContentLoaded', () => {
         return snap.exists() ? snap.val() : null;
     }
 
-    async function saveMySolTipWallet(){
-        if (!currentUser || !currentUser.userId) { alert('Login required.'); return null; }
-        let suggested = currentUser.solTipWallet || '';
-        if (window.solana && window.solana.isPhantom) {
-            try{
-                const res = await window.solana.connect({ onlyIfTrusted: true });
-                if (res && res.publicKey) suggested = res.publicKey.toString();
-            }catch(e){}
+    function getCompassCurrentUser(){
+        let u = null;
+        try { u = window.currentUser || currentUser || null; } catch(e) { u = window.currentUser || null; }
+        if (!u) {
+            try { u = JSON.parse(localStorage.getItem('compass_user') || 'null'); } catch(e) {}
         }
-        const wallet = prompt('Enter your SOL receiving wallet address for tips:', suggested);
-        if (!wallet) return null;
-        const clean = wallet.trim();
+        return u;
+    }
+
+    function setCompassCurrentUserPatch(userPatch){
+        const u = getCompassCurrentUser();
+        if (!u) return null;
+        Object.assign(u, userPatch || {});
+        try { window.currentUser = u; } catch(e) {}
+        try { currentUser = u; } catch(e) {}
+        try { localStorage.setItem('compass_user', JSON.stringify(u)); } catch(e) {}
+        return u;
+    }
+
+    async function saveMySolTipWallet(){
+        const me = getCompassCurrentUser();
+        if (!me || !me.userId) { alert('Login required.'); return null; }
+        if (!window.solana || !window.solana.isPhantom) {
+            alert('Phantom wallet not found. Install Phantom first.');
+            return null;
+        }
+
+        showSolTipToast('Opening Phantom to connect wallet...');
+        const res = await window.solana.connect();
+        if (!res || !res.publicKey) {
+            alert('Wallet connection failed.');
+            return null;
+        }
+
+        const clean = res.publicKey.toString();
         if (!(await isValidSolAddress(clean))) { alert('Invalid Solana wallet address.'); return null; }
-        await window.firebaseSet(window.firebaseRef(window.firebaseDB, 'users/' + currentUser.userId + '/solTipWallet'), clean);
-        currentUser.solTipWallet = clean;
-        try { localStorage.setItem('compass_user', JSON.stringify(currentUser)); } catch(e) {}
-        showSolTipToast('✅ SOL tip wallet saved.');
+
+        await window.firebaseSet(window.firebaseRef(window.firebaseDB, 'users/' + me.userId + '/solTipWallet'), clean);
+        setCompassCurrentUserPatch({ solTipWallet: clean });
+        showSolTipToast('✅ Phantom connected. Tip receiving wallet saved.');
+        updateSolTipWalletUI(clean);
         return clean;
+    }
+
+    window.connectSolTipWallet = saveMySolTipWallet;
+
+    function shortWallet(address){
+        return address ? address.slice(0,4) + '...' + address.slice(-4) : '';
+    }
+
+    function updateSolTipWalletUI(address){
+        document.querySelectorAll('[data-sol-tip-wallet-label]').forEach(el => {
+            el.textContent = address ? ('Connected: ' + shortWallet(address)) : 'Not connected';
+        });
+        document.querySelectorAll('[data-sol-tip-connect-btn]').forEach(el => {
+            el.textContent = address ? '✅ Phantom Connected' : '⚡ Connect Phantom';
+        });
+    }
+
+    function injectSolTipConnectUI(){
+        if (document.getElementById('solTipWalletConnectBox')) return;
+        const target = document.querySelector('.user-info-sidebar');
+        if (!target) return;
+        const me = getCompassCurrentUser();
+        const box = document.createElement('div');
+        box.id = 'solTipWalletConnectBox';
+        box.style.marginTop = '12px';
+        box.style.paddingTop = '12px';
+        box.style.borderTop = '1px solid rgba(220,20,60,.25)';
+        box.innerHTML = `
+            <button type="button" data-sol-tip-connect-btn onclick="connectSolTipWallet()" style="width:100%;padding:9px 10px;border-radius:9px;border:1px solid rgba(20,241,149,.45);background:rgba(20,241,149,.08);color:#14F195;font-family:Orbitron,sans-serif;font-weight:800;cursor:pointer;">⚡ Connect Phantom</button>
+            <div data-sol-tip-wallet-label style="margin-top:7px;font-size:.72rem;opacity:.72;overflow-wrap:anywhere;">Not connected</div>
+        `;
+        target.insertBefore(box, target.querySelector('.logout-btn'));
+        updateSolTipWalletUI(me && me.solTipWallet ? me.solTipWallet : '');
     }
 
     window.tipSolFromPost = async function(postId, ownerId){
         try{
-            if (!currentUser || !currentUser.userId) { alert('Login required.'); return; }
+            const me = getCompassCurrentUser();
+            if (!me || !me.userId) { alert('Login required.'); return; }
             if (!postId) { alert('Post not found.'); return; }
 
             let postOwnerId = ownerId;
@@ -7960,8 +8142,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             if (!postOwnerId) { alert('Creator not found.'); return; }
 
-            const isOwnPost = postOwnerId === currentUser.userId;
-            const owner = isOwnPost ? currentUser : await getUserData(postOwnerId);
+            const isOwnPost = postOwnerId === me.userId;
+            const owner = isOwnPost ? me : await getUserData(postOwnerId);
             let receiverWallet = owner && owner.solTipWallet ? owner.solTipWallet : '';
 
             if (isOwnPost) {
@@ -8009,7 +8191,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (window.firebasePush) {
                 await window.firebasePush(window.firebaseRef(window.firebaseDB, 'tips/' + postId), {
-                    postId, fromUserId: currentUser.userId, toUserId: postOwnerId,
+                    postId, fromUserId: me.userId, toUserId: postOwnerId,
                     amountSol: amount, signature, timestamp: Date.now(), toWallet: receiverWallet
                 });
             }
@@ -8044,11 +8226,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     document.addEventListener('DOMContentLoaded', () => {
+        injectSolTipConnectUI();
         window.ensureSolTipButtonsVisible();
-        setInterval(window.ensureSolTipButtonsVisible, 700);
+        setInterval(() => { injectSolTipConnectUI(); window.ensureSolTipButtonsVisible(); }, 700);
     });
 })();
-/* ===== END SOL TIP FUNCTION v3 ===== */
+/* ===== END SOL TIP FUNCTION v5 ===== */
+
+
+        // ===== Theme Toggle: Dark / Gold (v1) =====
+        function setCompassTheme(theme){
+            const selectedTheme = (theme === 'gold') ? 'gold' : 'dark';
+            document.body.setAttribute('data-theme', selectedTheme);
+            try { localStorage.setItem('compassTheme', selectedTheme); } catch(e) {}
+            document.querySelectorAll('.theme-option').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(selectedTheme === 'gold' ? 'themeGoldOption' : 'themeDarkOption');
+            if(activeBtn) activeBtn.classList.add('active');
+            try { showToast('Theme changed to ' + (selectedTheme === 'gold' ? 'Gold' : 'Dark') + ' ✨'); } catch(e) {}
+        }
+        window.setCompassTheme = setCompassTheme;
+
+        function initCompassTheme(){
+            let savedTheme = 'dark';
+            try { savedTheme = localStorage.getItem('compassTheme') || 'dark'; } catch(e) {}
+            setCompassTheme(savedTheme);
+        }
+        window.initCompassTheme = initCompassTheme;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initCompassTheme);
+        } else {
+            initCompassTheme();
+        }
+        // ===== End Theme Toggle =====
+
 </script>
 
 </body>
